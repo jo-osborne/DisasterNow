@@ -89,7 +89,7 @@
                     }
                     console.log(serverPeople[i].id + " " + foundShape);
                     if (!foundShape) {
-                        canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, 'lightskyblue'));
+                        canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, serverPeople[i].visible));
                     }
                 }
                 canvasState.draw();
@@ -159,7 +159,7 @@
                 (this.y <= my) && (this.y + this.h >= my);
     }
 
-    function Person(id, x, y, w, h, fill) {
+    function Person(id, x, y, w, h, visible) {
         // This is a very simple and unsafe constructor. All we're doing is checking if the values exist.
         // "x || 0" just means "if there is a value for x, use that. Otherwise use 0."
         // But we aren't checking anything else! We could put "Lalala" for the value of x 
@@ -168,20 +168,21 @@
         this.y = y || 0;
         this.w = w || 1;
         this.h = h || 1;
-        this.fill = fill || '#AAAAAA';
+        this.visible = visible;
     }
 
     // Draws this person to a given context
     Person.prototype.draw = function (ctx) {
-        console.log("Drawing a person " + this.id);
-        //ctx.fillStyle = this.fill;
-        //ctx.fillRect(this.x, this.y, this.w, this.h);
-        var img = new Image;
-        //img.height = this.h;
-        //img.width = this.w;
-        img.src = "Images/person.png";
-        ctx.drawImage(img, this.x, this.y, this.w, this.h);
-        ctx.globalAlpha = 1;
+        if (this.visible) {
+            console.log("Drawing a person " + this.id);
+            //ctx.fillStyle = this.fill;
+            //ctx.fillRect(this.x, this.y, this.w, this.h);
+            var img = new Image;
+            //img.height = this.h;
+            //img.width = this.w;
+            img.src = "Images/person.png";
+            ctx.drawImage(img, this.x, this.y, this.w, this.h);
+        }
     }
 
     // Determine if a point is inside the person's bounds
@@ -292,6 +293,21 @@
                 shapeModel.top = myState.selection.y;
                 shapeModel.id = myState.selection.id;
                 console.log("Sending to server " + shapeModel.id);
+
+                var people = myState.people;
+                for (var i = 0; i < people.length; i++) {
+                    var person = people[i]
+                    if (person.visible && person.contains(myState.selection.x, myState.selection.y)) {
+                        person.visible = false;
+                        var personModel = {
+                            left: person.x,
+                            top: person.y,
+                            id: person.id,
+                            visible: person.visible
+                        }
+                        moveShapeHub.server.updatePerson(personModel);
+                    }
+                }
                 moveShapeHub.server.updateModel(shapeModel);
                 myState.valid = false; // Something's dragging so we must redraw
             }
@@ -325,6 +341,27 @@
                 myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
                 console.log("after" + myState.shapes.length);
             }
+        };
+        moveShapeHub.client.updatePerson = function (model) {
+            //var foundShape = false;
+            var people = myState.people;
+            var l = people.length;
+            for (var i = 0; i < l; i++) {
+                if (people[i].id == model.id) {
+                    var mySel = people[i];
+                    //mySel.x = model.left;
+                    //mySel.y = model.top;
+                    mySel.visible = model.visible;
+                    myState.valid = false;
+                    //foundShape = true;
+                    break;
+                }
+            }
+            //if (!foundShape) {
+            //    console.log("before " + myState.shapes.length);
+            //    myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
+            //    console.log("after" + myState.shapes.length);
+            //}
         };
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;

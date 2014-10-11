@@ -16,19 +16,23 @@ namespace MoveShapeDemo
             TimeSpan.FromMilliseconds(40);
         private readonly IHubContext _hubContext;
         private Timer _broadcastLoop;
+        private Timer _personBroadcastLoop;
         private ShapeModel _model;
         private bool _modelUpdated;
+
+        private PersonModel _personModel;
+        private bool _personModelUpdated;
 
         private static object shapeLocker = new object();
         private static object peopleLocker = new object();
         public static List<ShapeModel> Shapes = new List<ShapeModel>();
-        public static List<PeopleModel> People = new List<PeopleModel>();
+        public static List<PersonModel> People = new List<PersonModel>();
 
         static Broadcaster()
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 1; i < 6; i++)
             {
-                People.Add(new PeopleModel { Id = i.ToString(), Left = i * 30, Top = i * 30 });
+                People.Add(new PersonModel { Id = i.ToString(), Left = i * 30, Top = i * 30, Visible = true });
             }
         }
 
@@ -45,6 +49,11 @@ namespace MoveShapeDemo
                 null,
                 BroadcastInterval,
                 BroadcastInterval);
+            _personBroadcastLoop = new Timer(
+                BroadcastPerson,
+                null,
+                BroadcastInterval,
+                BroadcastInterval);
         }
         public void BroadcastShape(object state)
         {
@@ -57,6 +66,17 @@ namespace MoveShapeDemo
                 _modelUpdated = false;
             }
         }
+        public void BroadcastPerson(object state)
+        {
+            // No need to send anything if our model hasn't changed
+            if (_personModelUpdated)
+            {
+                // This is how we can access the Clients property 
+                // in a static hub method or outside of the hub entirely
+                _hubContext.Clients.AllExcept(_model.LastUpdatedBy).updatePerson(_personModel);
+                _personModelUpdated = false;
+            }
+        }
         public void UpdateShape(ShapeModel clientModel)
         {
             _model = clientModel;
@@ -66,6 +86,20 @@ namespace MoveShapeDemo
                 if (!Shapes.Any(x => x.Id == clientModel.Id))
                 {
                     Shapes.Add(clientModel);
+                }
+            }
+        }
+
+        public void UpdatePerson(PersonModel clientModel)
+        {
+            _personModel = clientModel;
+            _personModelUpdated = true;
+            lock (peopleLocker)
+            {
+                var person = People.FirstOrDefault(x => x.Id == clientModel.Id);
+                if (person != null)
+                {
+                    person.Visible = clientModel.Visible;
                 }
             }
         }
@@ -97,6 +131,13 @@ namespace MoveShapeDemo
             // Update the shape model within our broadcaster
             _broadcaster.UpdateShape(clientModel);
         }
+
+        public void UpdatePerson(PersonModel clientModel)
+        {
+            clientModel.LastUpdatedBy = Context.ConnectionId;
+            // Update the shape model within our broadcaster
+            _broadcaster.UpdatePerson(clientModel);
+        }
     }
     public class ShapeModel
     {
@@ -113,7 +154,7 @@ namespace MoveShapeDemo
         public string LastUpdatedBy { get; set; }
     }
 
-    public class PeopleModel
+    public class PersonModel
     {
         // We declare Left and Top as lowercase with 
         // JsonProperty to sync the client and server models
@@ -123,6 +164,8 @@ namespace MoveShapeDemo
         public double Top { get; set; }
         [JsonProperty("id")]
         public string Id { get; set; }
+        [JsonProperty("visible")]
+        public bool Visible { get; set; }
         // We don't want the client to get the "LastUpdatedBy" property
         [JsonIgnore]
         public string LastUpdatedBy { get; set; }
