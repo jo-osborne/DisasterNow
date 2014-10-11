@@ -20,6 +20,12 @@ namespace DisasterGame
                 defaults: new { controller = "ShapeModel", action = "Get" }
             );
 
+            routes.MapHttpRoute(
+                name: "getpeople",
+                routeTemplate: "getpeople",
+                defaults: new { controller = "PeopleModel", action = "Get" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",

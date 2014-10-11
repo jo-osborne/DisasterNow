@@ -19,8 +19,18 @@ namespace MoveShapeDemo
         private ShapeModel _model;
         private bool _modelUpdated;
 
-        private static object locker = new object();
+        private static object shapeLocker = new object();
+        private static object peopleLocker = new object();
         public static List<ShapeModel> Shapes = new List<ShapeModel>();
+        public static List<PeopleModel> People = new List<PeopleModel>();
+
+        static Broadcaster()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                People.Add(new PeopleModel { Id = i.ToString(), Left = i * 30, Top = i * 30 });
+            }
+        }
 
         public Broadcaster()
         {
@@ -51,19 +61,13 @@ namespace MoveShapeDemo
         {
             _model = clientModel;
             _modelUpdated = true;
-            lock (locker)
+            lock (shapeLocker)
             {
                 if (!Shapes.Any(x => x.Id == clientModel.Id))
                 {
                     Shapes.Add(clientModel);
                 }
             }
-        }
-
-        public ShapesModel GetShapes()
-        {
-           // return new ShapesModel { Shapes = Shapes.ToArray() };
-            return new ShapesModel { Shapes = "AAA" };
         }
 
         public static Broadcaster Instance
@@ -93,10 +97,6 @@ namespace MoveShapeDemo
             // Update the shape model within our broadcaster
             _broadcaster.UpdateShape(clientModel);
         }
-        public ShapesModel GetShapes()
-        {
-            return _broadcaster.GetShapes();
-        }
     }
     public class ShapeModel
     {
@@ -113,11 +113,19 @@ namespace MoveShapeDemo
         public string LastUpdatedBy { get; set; }
     }
 
-    public class ShapesModel
+    public class PeopleModel
     {
-        [JsonProperty("shapes")]
-        //public ShapeModel[] Shapes { get; set; }
-        public string Shapes { get; set; }
+        // We declare Left and Top as lowercase with 
+        // JsonProperty to sync the client and server models
+        [JsonProperty("left")]
+        public double Left { get; set; }
+        [JsonProperty("top")]
+        public double Top { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        // We don't want the client to get the "LastUpdatedBy" property
+        [JsonIgnore]
+        public string LastUpdatedBy { get; set; }
     }
 
 }
