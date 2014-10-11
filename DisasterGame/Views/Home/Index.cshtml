@@ -13,50 +13,6 @@
 
 </canvas>
 
-@*<script>
-    $(function () {
-        var moveShapeHub = $.connection.moveShapeHub,
-            $shape = $("#shape"),
-            // Send a maximum of 10 messages per second
-            // (mouse movements trigger a lot of messages)
-            messageFrequency = 10,
-            // Determine how often to send messages in
-            // time to abide by the messageFrequency
-            updateRate = 1000 / messageFrequency,
-            shapeModel = {
-                left: 0,
-                top: 0
-            },
-            moved = false;
-        moveShapeHub.client.updateShape = function (model) {
-            shapeModel = model;
-            // Gradually move the shape towards the new location (interpolate)
-            // The updateRate is used as the duration because by the time
-            // we get to the next location we want to be at the "last" location
-            // We also clear the animation queue so that we start a new
-            // animation and don't lag behind.
-            $shape.animate(shapeModel, { duration: updateRate, queue: false });
-        };
-        $.connection.hub.start().done(function () {
-            $shape.draggable({
-                drag: function () {
-                    shapeModel = $shape.offset();
-                    moved = true;
-                }
-            });
-            // Start the client side server update interval
-            setInterval(updateServerModel, updateRate);
-        });
-        function updateServerModel() {
-            // Only update server if we have a new movement
-            if (moved) {
-                moveShapeHub.server.updateModel(shapeModel);
-                moved = false;
-            }
-        }
-    });
-</script>*@
-
 <script>
     var moveShapeHub = $.connection.moveShapeHub,
     $shape = $("#shape"),
@@ -109,10 +65,11 @@
 
     // Constructor for Shape objects to hold data for all drawn objects.
     // For now they will just be defined as rectangles.
-    function Shape(x, y, w, h, fill) {
+    function Shape(id, x, y, w, h, fill) {
         // This is a very simple and unsafe constructor. All we're doing is checking if the values exist.
         // "x || 0" just means "if there is a value for x, use that. Otherwise use 0."
         // But we aren't checking anything else! We could put "Lalala" for the value of x 
+        this.id = id;
         this.x = x || 0;
         this.y = y || 0;
         this.w = w || 1;
@@ -144,7 +101,8 @@
         updateRate = 1000 / messageFrequency,
         shapeModel = {
             left: 0,
-            top: 0
+            top: 0,
+            id: ""
         }
 
     function CanvasState(canvas) {
@@ -229,6 +187,7 @@
                 // TODO: send to server
                 shapeModel.left = myState.selection.x;
                 shapeModel.top = myState.selection.y;
+                shapeModel.id = myState.selection.id;
                 console.log("Sending to server");
                 moveShapeHub.server.updateModel(shapeModel);
                 myState.valid = false; // Something's dragging so we must redraw
@@ -243,10 +202,17 @@
             // animation and don't lag behind.
             //$shape.animate(shapeModel, { duration: updateRate, queue: false });  
             console.log("Received update");
-            myState.shapes[0].x = shapeModel.left;
-            myState.shapes[0].y = shapeModel.top;
-            myState.valid = false;
-
+            var shapes = myState.shapes;
+            var l = shapes.length;
+            for (var i = l - 1; i >= 0; i--) {
+                if (shapes[i].id == shapeModel.id) {
+                    var mySel = shapes[i];
+                    mySel.x = shapeModel.left;
+                    mySel.y = shapeModel.top;
+                    myState.valid = false;
+                    return;
+                }
+            }
         };
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;
@@ -343,7 +309,8 @@
     function init() {
         var s = new CanvasState(document.getElementById('canvas1'));
         //s.addShape(new Shape(40, 40, 50, 50)); // The default is gray
-        s.addShape(new Shape(60, 60, 40, 40, 'lightskyblue'));
+        s.addShape(new Shape("Jo", 10, 10, 40, 40, 'lightskyblue'));
+        s.addShape(new Shape("Irina", 60, 60, 40, 40, 'lightgreen'));
         // Lets make some partially transparent
         //s.addShape(new Shape(80, 150, 60, 30, 'rgba(127, 255, 212, .5)'));
         //s.addShape(new Shape(125, 80, 30, 80, 'rgba(245, 222, 179, .7)'));
@@ -352,6 +319,4 @@
     init();
     // Now go make something amazing!
 </script>
-
-<div id="shape"></div>
 

@@ -82,6 +82,8 @@ namespace MoveShapeDemo
         public double Left { get; set; }
         [JsonProperty("top")]
         public double Top { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
         // We don't want the client to get the "LastUpdatedBy" property
         [JsonIgnore]
         public string LastUpdatedBy { get; set; }
