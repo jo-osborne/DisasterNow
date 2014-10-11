@@ -2,6 +2,8 @@
 using System.Threading;
 using Microsoft.AspNet.SignalR;
 using Newtonsoft.Json;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace MoveShapeDemo
 {
@@ -16,6 +18,10 @@ namespace MoveShapeDemo
         private Timer _broadcastLoop;
         private ShapeModel _model;
         private bool _modelUpdated;
+
+        private static object locker = new object();
+        public static List<ShapeModel> Shapes = new List<ShapeModel>();
+
         public Broadcaster()
         {
             // Save our hub context so we can easily use it 
@@ -45,7 +51,21 @@ namespace MoveShapeDemo
         {
             _model = clientModel;
             _modelUpdated = true;
+            lock (locker)
+            {
+                if (!Shapes.Any(x => x.Id == clientModel.Id))
+                {
+                    Shapes.Add(clientModel);
+                }
+            }
         }
+
+        public ShapesModel GetShapes()
+        {
+           // return new ShapesModel { Shapes = Shapes.ToArray() };
+            return new ShapesModel { Shapes = "AAA" };
+        }
+
         public static Broadcaster Instance
         {
             get
@@ -73,6 +93,10 @@ namespace MoveShapeDemo
             // Update the shape model within our broadcaster
             _broadcaster.UpdateShape(clientModel);
         }
+        public ShapesModel GetShapes()
+        {
+            return _broadcaster.GetShapes();
+        }
     }
     public class ShapeModel
     {
@@ -87,6 +111,13 @@ namespace MoveShapeDemo
         // We don't want the client to get the "LastUpdatedBy" property
         [JsonIgnore]
         public string LastUpdatedBy { get; set; }
+    }
+
+    public class ShapesModel
+    {
+        [JsonProperty("shapes")]
+        //public ShapeModel[] Shapes { get; set; }
+        public string Shapes { get; set; }
     }
 
 }

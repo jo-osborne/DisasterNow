@@ -9,10 +9,8 @@
     }
 </style>
 <span id="playername">nothing here</span>
-<img src="/Images/bus.jpg" style="display:none" />
-<canvas id="canvas1">
-
-</canvas>
+<img src="/Images/bus.jpg" style="display: none" />
+<canvas id="canvas1"></canvas>
 
 <script>
     var moveShapeHub = $.connection.moveShapeHub,
@@ -29,9 +27,9 @@
         id: ""
     },
     newModel = {
-            left: 0,
-            top: 0,
-            id: ""
+        left: 0,
+        top: 0,
+        id: ""
     },
     moved = false;
     moveShapeHub.client.updateShape = function (model) {
@@ -43,10 +41,45 @@
         // animation and don't lag behind.
         $shape.animate(shapeModel, { duration: updateRate, queue: false });
     };
-    
+
     $.connection.hub.start().done(function () {
         console.log("Hub started");
         moveShapeHub.server.updateModel(newModel);
+
+        $.ajax({
+            url: "/getshapes",
+            //data: data,
+            success: function (data) {
+
+                //var serverShapesModel = moveShapeHub.server.getShapes();
+                //console.log("serverShapesModel=" + serverShapesModel);
+
+                var serverShapes = data;
+                var foundShape = false;
+                var localShapes = canvasState.shapes;
+                console.log("serverShapes=" + serverShapes);
+                console.log("serverShapes.length=" + serverShapes.length);
+                console.log("localShapes.length=" + localShapes.length);
+                for (var i = 0; i < serverShapes.length; i++) {
+                    for (var j = 0; j < localShapes.length; j++) {
+                        //console.log("Checking if this is the right shape: " + shapes[i].id);
+                        if (localShapes[j].id == serverShapes[i].id) {
+                            foundShape = true;
+                            break;
+                        }
+                    }
+                    console.log(serverShapes[i].id + " " + foundShape);
+                    if (!foundShape) {
+                        //console.log("before " + myState.shapes.length);
+                        //myState.addShape(new Shape(serverShapes[i].id, serverShapes[i].left, serverShapes[i].top, 40, 40, 'lightskyblue'));
+                        canvasState.addShape(new Shape(serverShapes[i].id, serverShapes[i].left, serverShapes[i].top, 40, 40, 'lightskyblue'));
+                        //console.log("after" + myState.shapes.length);
+                    }
+                }
+            },
+            //dataType: dataType
+        });
+
         $shape.draggable({
             drag: function () {
                 shapeModel = $shape.offset();
@@ -238,14 +271,10 @@
                 }
             }
             if (!foundShape) {
-                //myState.shapes.push(new Shape($('#playername').text(), 10, 10, 40, 40, 'lightskyblue'));
-                console.log("before "+myState.shapes.length);
+                console.log("before " + myState.shapes.length);
                 myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
-                console.log("after"+myState.shapes.length);
-
-                //myState.valid = false;
+                console.log("after" + myState.shapes.length);
             }
-            console.log(foundShape);
         };
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;
@@ -360,7 +389,7 @@
 
     getPlayersName();
     createPlayersShape();
-    
+
     // Now go make something amazing!
 </script>
 

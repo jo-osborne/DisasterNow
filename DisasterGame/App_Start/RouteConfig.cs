@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
+using System.Web.Http;
 
 namespace DisasterGame
 {
@@ -13,11 +14,18 @@ namespace DisasterGame
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
+            routes.MapHttpRoute(
+                name: "getshapes",
+                routeTemplate: "getshapes",
+                defaults: new { controller = "ShapeModel", action = "Get" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
-            );
+                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional });
+
+
         }
     }
 }
