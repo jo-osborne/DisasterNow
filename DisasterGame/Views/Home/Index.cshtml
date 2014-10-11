@@ -28,6 +28,11 @@
         top: 0,
         id: ""
     },
+    newModel = {
+            left: 0,
+            top: 0,
+            id: ""
+    },
     moved = false;
     moveShapeHub.client.updateShape = function (model) {
         shapeModel = model;
@@ -40,11 +45,12 @@
     };
     
     $.connection.hub.start().done(function () {
+        console.log("Hub started");
+        moveShapeHub.server.updateModel(newModel);
         $shape.draggable({
             drag: function () {
                 shapeModel = $shape.offset();
                 moved = true;
-                console.log("Hub started");                
             }
         });
         // Start the client side server update interval
@@ -105,7 +111,7 @@
     }
 
     var moveShapeHub = $.connection.moveShapeHub,
-        //$shape = $("#shape"),
+        $shape = $("#shape"),
         // Send a maximum of 10 messages per second
         // (mouse movements trigger a lot of messages)
         messageFrequency = 10,
@@ -343,14 +349,13 @@
     function createPlayersShape() {
         console.log("Creating shape");
         canvasState = new CanvasState(document.getElementById('canvas1'));
-        canvasState.addShape(new Shape("nobody", 60, 60, 40, 40, 'lightskyblue'));
-        var newShape = new Shape($('#playername').text(), 10, 10, 40, 40, 'lightskyblue');
+        var newShape = new Shape($('#playername').text(), (Math.random() * 60) + 1, (Math.random() * 60) + 1, 40, 40, 'lightskyblue');
         canvasState.addShape(newShape);
-        shapeModel.left = newShape.x;
-        shapeModel.top = newShape.y;
-        shapeModel.id = newShape.id;
+        newModel.left = newShape.x;
+        newModel.top = newShape.y;
+        newModel.id = newShape.id;
+
         console.log("Sending new shape to server " + newShape.id);
-        moveShapeHub.server.updateModel(shapeModel);
     }
 
     getPlayersName();
