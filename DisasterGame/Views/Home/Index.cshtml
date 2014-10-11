@@ -1,20 +1,16 @@
 ﻿@{
     ViewBag.Title = "Home Page";
 }
-<style>
-    #shape {
-        width: 100px;
-        height: 100px;
-        background-color: #FF0000;
-    }
-</style>
-<span id="playername">nothing here</span>
+
+Time left: <div id="timeleft"></div>
+<div id="playername">nothing here</div>
+<div id="results" style="display: none; position:absolute; top: 100px; left: 100px"></div>
 <img src="/Images/bus.jpg" style="display: none" />
-<canvas id="canvas1"></canvas>
+<canvas id="canvas1" height="900" width="1352"></canvas>
+<!--style="height: 900px; width:1352px; background-image:url(/Images/map.png)"-->
 
 <script>
     var moveShapeHub = $.connection.moveShapeHub,
-    //$shape = $("#shape"),
     // Send a maximum of 10 messages per second
     // (mouse movements trigger a lot of messages)
     messageFrequency = 10,
@@ -32,15 +28,6 @@
         id: ""
     },
     moved = false;
-    moveShapeHub.client.updateShape = function (model) {
-        shapeModel = model;
-        // Gradually move the shape towards the new location (interpolate)
-        // The updateRate is used as the duration because by the time
-        // we get to the next location we want to be at the "last" location
-        // We also clear the animation queue so that we start a new
-        // animation and don't lag behind.
-        $shape.animate(shapeModel, { duration: updateRate, queue: false });
-    };
 
     $.connection.hub.start().done(function () {
         console.log("Hub started");
@@ -92,6 +79,7 @@
                         canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, serverPeople[i].visible));
                     }
                 }
+                canvasState.valid = false;
                 canvasState.draw();
             },
         });
@@ -143,7 +131,7 @@
         var img = new Image;
         //img.height = this.h;
         //img.width = this.w;
-        img.src = "Images/bus.jpg";
+        img.src = "Images/bus.png";
         if (this.id != $('#playername').text()) {
             ctx.globalAlpha = 0.5;
         }
@@ -363,6 +351,13 @@
             //    console.log("after" + myState.shapes.length);
             //}
         };
+        moveShapeHub.client.updateTimer = function (model) {
+            $("#timeleft").text(model.timeleft);
+        };
+        moveShapeHub.client.gameOver = function (model) {
+            $("#results").show();
+            $("#results").text("Saved: " + model.survivers + ", perished " + model.victims);
+        };
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;
         }, true);
@@ -399,10 +394,15 @@
     CanvasState.prototype.draw = function () {
         // if our state is invalid, redraw and validate!
         if (!this.valid) {
+            this.clear();
+            var img = new Image;
+            img.src = "Images/map.png";
+            this.ctx.drawImage(img, 0, 0, 1352, 900);
+
             var ctx = this.ctx;
             var shapes = this.shapes;
             var people = this.people;
-            this.clear();
+            
 
             // ** Add stuff you want drawn in the background all the time here **
 

@@ -17,6 +17,7 @@ namespace MoveShapeDemo
         private readonly IHubContext _hubContext;
         private Timer _broadcastLoop;
         private Timer _personBroadcastLoop;
+        private Timer _timeBroadcastLoop;
         private ShapeModel _model;
         private bool _modelUpdated;
 
@@ -28,16 +29,21 @@ namespace MoveShapeDemo
         public static List<ShapeModel> Shapes = new List<ShapeModel>();
         public static List<PersonModel> People = new List<PersonModel>();
 
+        private const int GameLength = 60;
+
+        private DateTime started;
+
         static Broadcaster()
         {
-            for (int i = 1; i < 6; i++)
+            for (int i = 1; i < 10; i++)
             {
-                People.Add(new PersonModel { Id = i.ToString(), Left = i * 30, Top = i * 30, Visible = true });
+                People.Add(new PersonModel { Id = i.ToString(), Left = i * 100, Top = i * 100, Visible = true });
             }
         }
 
         public Broadcaster()
         {
+            started = DateTime.Now;
             // Save our hub context so we can easily use it 
             // to send to its connected clients
             _hubContext = GlobalHost.ConnectionManager.GetHubContext<MoveShapeHub>();
@@ -54,6 +60,11 @@ namespace MoveShapeDemo
                 null,
                 BroadcastInterval,
                 BroadcastInterval);
+            _timeBroadcastLoop = new Timer(
+                BroadcastTime,
+                null,
+                BroadcastInterval,
+                BroadcastInterval);
         }
         public void BroadcastShape(object state)
         {
@@ -66,6 +77,22 @@ namespace MoveShapeDemo
                 _modelUpdated = false;
             }
         }
+        public void BroadcastTime(object state)
+        {
+            var timeLeft = GameLength - (int)Math.Floor((DateTime.Now - started).TotalSeconds);
+            if (timeLeft >= 0)
+            {
+                _hubContext.Clients.All.updateTimer(new TimeModel { TimeLeft = timeLeft });
+            }
+            else
+            {
+                _timeBroadcastLoop.Dispose();
+                var survivers = People.Count(x => !x.Visible);
+                var victims = People.Count(x => x.Visible);
+                _hubContext.Clients.All.gameOver(new GameOverModel { Survivers = survivers, Victims = victims });
+            }
+        }
+
         public void BroadcastPerson(object state)
         {
             // No need to send anything if our model hasn't changed
@@ -171,4 +198,18 @@ namespace MoveShapeDemo
         public string LastUpdatedBy { get; set; }
     }
 
+    public class TimeModel
+    {
+        [JsonProperty("timeleft")]
+        public int TimeLeft { get; set; }
+    }
+
+    public class GameOverModel
+    {
+        [JsonProperty("survivers")]
+        public int Survivers { get; set; }
+
+        [JsonProperty("victims")]
+        public int Victims { get; set; }
+    }
 }
