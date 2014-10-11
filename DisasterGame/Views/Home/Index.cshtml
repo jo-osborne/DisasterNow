@@ -128,7 +128,10 @@
         //img.height = this.h;
         //img.width = this.w;
         img.src = "Images/bus.jpg";
-        if (this.id != $('#playername').text()) {
+        if (this.id == $('#playername').text()) {
+            img.to
+        }
+        else {
             ctx.globalAlpha = 0.5;
         }
         ctx.drawImage(img, this.x, this.y, this.w, this.h);
@@ -220,8 +223,8 @@
                         myState.dragging = true;
                         myState.selection = mySel;
                         myState.valid = false;
+                        return;
                     }
-                    return;
                 }
             }
             // havent returned means we have failed to select anything.
@@ -313,6 +316,7 @@
 
             // ** Add stuff you want drawn in the background all the time here **
 
+            var myShape;
             // draw all shapes
             var l = shapes.length;
             for (var i = 0; i < l; i++) {
@@ -321,7 +325,12 @@
                 if (shape.x > this.width || shape.y > this.height ||
                     shape.x + shape.w < 0 || shape.y + shape.h < 0) continue;
                 shapes[i].draw(ctx);
+                if (shapes[i].id == $("#playername").text()) {
+                    myShape = shapes[i];
+                }
             }
+
+            myShape.draw(ctx);
 
             // draw selection
             // right now this is just a stroke along the edge of the selected Shape
