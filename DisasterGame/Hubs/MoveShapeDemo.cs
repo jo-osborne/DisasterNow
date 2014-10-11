@@ -29,7 +29,7 @@ namespace MoveShapeDemo
         public static List<ShapeModel> Shapes = new List<ShapeModel>();
         public static List<PersonModel> People = new List<PersonModel>();
 
-        private const int GameLength = 60;
+        private const int GameLength = 120;
 
         private DateTime started;
 

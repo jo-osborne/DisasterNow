@@ -4,11 +4,11 @@
 <div style="position: absolute; top: 790px; left: 1400px; z-index:9;">
     Time left: <span id="timeleft"></span>
     <br />
-    People on bus: <span id="peopleOnBus">0</span><br />
+    People on the bus: <span id="peopleOnBus">0</span><br />
     Name: <span id="playername"></span>
 </div>
 
-<div id="results" style="display: none; position: absolute; top: 800px; left: 1352px"></div>
+<div id="results" style="position: absolute; top: 40px; left: 400px;"; z-index:9;></div>
 <img src="/Images/bus.jpg" style="display: none" />
 <div>
     <img src="Images/logo.png" class="logo" />
@@ -20,6 +20,7 @@
     <canvas id="canvas1" height="900" width="1352" style="position: absolute; top: 80px; left: 0"></canvas>
 </div>
 <script>
+    var gameOver = false;
     var busCapasity = 3;
     var dropOffX = 105;
     var dropOffY = 775;
@@ -391,6 +392,9 @@
             $("#timeleft").text(model.timeleft);
         };
         moveShapeHub.client.gameOver = function (model) {
+            gameOver = true;
+            canvasState.valid = false;
+            canvasState.draw();
             $("#results").show();
             $("#results").text("Saved: " + model.survivers + ", perished " + model.victims);
         };
@@ -479,6 +483,11 @@
             }
 
             // ** Add stuff you want drawn on top all the time here **
+
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(153,200,131,.5)';
+                ctx.fillRect(0, 0, 1352, 900);
+            }
 
             this.valid = true;
         }
