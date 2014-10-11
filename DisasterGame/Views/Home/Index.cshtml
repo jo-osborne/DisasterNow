@@ -8,14 +8,15 @@
         background-color: #FF0000;
     }
 </style>
-
+<span id="playername">nothing here</span>
+<img src="/Images/bus.jpg" style="display:none" />
 <canvas id="canvas1">
 
 </canvas>
 
 <script>
     var moveShapeHub = $.connection.moveShapeHub,
-    $shape = $("#shape"),
+    //$shape = $("#shape"),
     // Send a maximum of 10 messages per second
     // (mouse movements trigger a lot of messages)
     messageFrequency = 10,
@@ -24,7 +25,8 @@
     updateRate = 1000 / messageFrequency,
     shapeModel = {
         left: 0,
-        top: 0
+        top: 0,
+        id: ""
     },
     moved = false;
     moveShapeHub.client.updateShape = function (model) {
@@ -36,11 +38,13 @@
         // animation and don't lag behind.
         $shape.animate(shapeModel, { duration: updateRate, queue: false });
     };
+    
     $.connection.hub.start().done(function () {
         $shape.draggable({
             drag: function () {
                 shapeModel = $shape.offset();
                 moved = true;
+                console.log("Hub started");                
             }
         });
         // Start the client side server update interval
@@ -79,8 +83,17 @@
 
     // Draws this shape to a given context
     Shape.prototype.draw = function (ctx) {
-        ctx.fillStyle = this.fill;
-        ctx.fillRect(this.x, this.y, this.w, this.h);
+        //ctx.fillStyle = this.fill;
+        //ctx.fillRect(this.x, this.y, this.w, this.h);
+        var img = new Image;
+        //img.height = this.h;
+        //img.width = this.w;
+        img.src = "Images/bus.jpg";
+        if (this.id != $('#playername').text()) {
+            ctx.globalAlpha = 0.5;
+        }
+        ctx.drawImage(img, this.x, this.y, this.w, this.h);
+        ctx.globalAlpha = 1;
     }
 
     // Determine if a point is inside the shape's bounds
@@ -159,14 +172,16 @@
             var l = shapes.length;
             for (var i = l - 1; i >= 0; i--) {
                 if (shapes[i].contains(mx, my)) {
-                    var mySel = shapes[i];
-                    // Keep track of where in the object we clicked
-                    // so we can move it smoothly (see mousemove)
-                    myState.dragoffx = mx - mySel.x;
-                    myState.dragoffy = my - mySel.y;
-                    myState.dragging = true;
-                    myState.selection = mySel;
-                    myState.valid = false;
+                    if (shapes[i].id == $('#playername').text()) {
+                        var mySel = shapes[i];
+                        // Keep track of where in the object we clicked
+                        // so we can move it smoothly (see mousemove)
+                        myState.dragoffx = mx - mySel.x;
+                        myState.dragoffy = my - mySel.y;
+                        myState.dragging = true;
+                        myState.selection = mySel;
+                        myState.valid = false;
+                    }
                     return;
                 }
             }
@@ -184,11 +199,10 @@
                 // from where we clicked. Thats why we saved the offset and use it here
                 myState.selection.x = mouse.x - myState.dragoffx;
                 myState.selection.y = mouse.y - myState.dragoffy;
-                // TODO: send to server
                 shapeModel.left = myState.selection.x;
                 shapeModel.top = myState.selection.y;
                 shapeModel.id = myState.selection.id;
-                console.log("Sending to server");
+                console.log("Sending to server " + shapeModel.id);
                 moveShapeHub.server.updateModel(shapeModel);
                 myState.valid = false; // Something's dragging so we must redraw
             }
@@ -201,27 +215,40 @@
             // We also clear the animation queue so that we start a new
             // animation and don't lag behind.
             //$shape.animate(shapeModel, { duration: updateRate, queue: false });  
-            console.log("Received update");
+            console.log("Received update for " + shapeModel.id);
+            var foundShape = false;
             var shapes = myState.shapes;
             var l = shapes.length;
-            for (var i = l - 1; i >= 0; i--) {
+            console.log("l=" + l);
+            for (var i = 0; i < l; i++) {
+                console.log("Checking if this is the right shape: " + shapes[i].id);
                 if (shapes[i].id == shapeModel.id) {
                     var mySel = shapes[i];
                     mySel.x = shapeModel.left;
                     mySel.y = shapeModel.top;
                     myState.valid = false;
-                    return;
+                    foundShape = true;
+                    break;
                 }
             }
+            if (!foundShape) {
+                //myState.shapes.push(new Shape($('#playername').text(), 10, 10, 40, 40, 'lightskyblue'));
+                console.log("before "+myState.shapes.length);
+                myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
+                console.log("after"+myState.shapes.length);
+
+                //myState.valid = false;
+            }
+            console.log(foundShape);
         };
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;
         }, true);
         // double click for making new shapes
-        canvas.addEventListener('dblclick', function (e) {
-            var mouse = myState.getMouse(e);
-            myState.addShape(new Shape(mouse.x - 10, mouse.y - 10, 20, 20, 'rgba(0,255,0,.6)'));
-        }, true);
+        //canvas.addEventListener('dblclick', function (e) {
+        //    var mouse = myState.getMouse(e);
+        //    myState.addShape(new Shape(mouse.x - 10, mouse.y - 10, 20, 20, 'rgba(0,255,0,.6)'));
+        //}, true);
 
         // **** Options! ****
 
@@ -306,17 +333,29 @@
     // You could uncomment this init() reference and place the script reference inside the body tag
     //init();
 
-    function init() {
-        var s = new CanvasState(document.getElementById('canvas1'));
-        //s.addShape(new Shape(40, 40, 50, 50)); // The default is gray
-        s.addShape(new Shape("Jo", 10, 10, 40, 40, 'lightskyblue'));
-        s.addShape(new Shape("Irina", 60, 60, 40, 40, 'lightgreen'));
-        // Lets make some partially transparent
-        //s.addShape(new Shape(80, 150, 60, 30, 'rgba(127, 255, 212, .5)'));
-        //s.addShape(new Shape(125, 80, 30, 80, 'rgba(245, 222, 179, .7)'));
+    //var canvasState = new CanvasState(document.getElementById('canvas1'));
+
+    function getPlayersName() {
+        $('#playername').text(prompt('Enter your name:', ''));
+        //$('#playername').text("Jo");
     }
 
-    init();
+    function createPlayersShape() {
+        console.log("Creating shape");
+        canvasState = new CanvasState(document.getElementById('canvas1'));
+        canvasState.addShape(new Shape("nobody", 60, 60, 40, 40, 'lightskyblue'));
+        var newShape = new Shape($('#playername').text(), 10, 10, 40, 40, 'lightskyblue');
+        canvasState.addShape(newShape);
+        shapeModel.left = newShape.x;
+        shapeModel.top = newShape.y;
+        shapeModel.id = newShape.id;
+        console.log("Sending new shape to server " + newShape.id);
+        moveShapeHub.server.updateModel(shapeModel);
+    }
+
+    getPlayersName();
+    createPlayersShape();
+    
     // Now go make something amazing!
 </script>
 
