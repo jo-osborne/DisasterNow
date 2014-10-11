@@ -1,15 +1,28 @@
 ﻿@{
     ViewBag.Title = "Home Page";
 }
+<div style="position: absolute; top: 790px; left: 1400px; z-index:9;">
+    Time left: <span id="timeleft"></span>
+    <br />
+    People on bus: <span id="peopleOnBus">0</span><br />
+    Name: <span id="playername"></span>
+</div>
 
-Time left: <div id="timeleft"></div>
-<div id="playername">nothing here</div>
-<div id="results" style="display: none; position:absolute; top: 100px; left: 100px"></div>
+<div id="results" style="display: none; position: absolute; top: 800px; left: 1352px"></div>
 <img src="/Images/bus.jpg" style="display: none" />
-<canvas id="canvas1" height="900" width="1352"></canvas>
-<!--style="height: 900px; width:1352px; background-image:url(/Images/map.png)"-->
+<div>
+    <img src="Images/logo.png" class="logo" />
 
+    <img src="Images/sidebar.jpg" style="position: absolute; top: 0; left: 1352px" />
+
+
+
+    <canvas id="canvas1" height="900" width="1352" style="position: absolute; top: 80px; left: 0"></canvas>
+</div>
 <script>
+    var busCapasity = 3;
+    var dropOffX = 105;
+    var dropOffY = 775;
     var moveShapeHub = $.connection.moveShapeHub,
     // Send a maximum of 10 messages per second
     // (mouse movements trigger a lot of messages)
@@ -20,12 +33,14 @@ Time left: <div id="timeleft"></div>
     shapeModel = {
         left: 0,
         top: 0,
-        id: ""
+        id: "",
+        full: false
     },
     newModel = {
         left: 0,
         top: 0,
-        id: ""
+        id: "",
+        full: false
     },
     moved = false;
 
@@ -55,6 +70,8 @@ Time left: <div id="timeleft"></div>
                         canvasState.addShape(new Shape(serverShapes[i].id, serverShapes[i].left, serverShapes[i].top, 40, 40, 'lightskyblue'));
                     }
                 }
+                canvasState.valid = false;
+                canvasState.draw();
             },
         });
 
@@ -68,16 +85,16 @@ Time left: <div id="timeleft"></div>
                 console.log("serverPeople.length=" + serverPeople.length);
                 console.log("localPeople.length=" + localPeople.length);
                 for (var i = 0; i < serverPeople.length; i++) {
-                    for (var j = 0; j < localPeople.length; j++) {
-                        if (localPeople[j].id == serverPeople[i].id) {
-                            foundShape = true;
-                            break;
-                        }
-                    }
-                    console.log(serverPeople[i].id + " " + foundShape);
-                    if (!foundShape) {
-                        canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, serverPeople[i].visible));
-                    }
+                    //for (var j = 0; j < localPeople.length; j++) {
+                    //    if (localPeople[j].id == serverPeople[i].id) {
+                    //        foundShape = true;
+                    //        break;
+                    //    }
+                    //}
+                    //console.log(serverPeople[i].id + " " + foundShape);
+                    //if (!foundShape) {
+                    canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, serverPeople[i].visible));
+                    //}
                 }
                 canvasState.valid = false;
                 canvasState.draw();
@@ -112,7 +129,7 @@ Time left: <div id="timeleft"></div>
 
     // Constructor for Shape objects to hold data for all drawn objects.
     // For now they will just be defined as rectangles.
-    function Shape(id, x, y, w, h, fill) {
+    function Shape(id, x, y, w, h, full) {
         // This is a very simple and unsafe constructor. All we're doing is checking if the values exist.
         // "x || 0" just means "if there is a value for x, use that. Otherwise use 0."
         // But we aren't checking anything else! We could put "Lalala" for the value of x 
@@ -121,7 +138,7 @@ Time left: <div id="timeleft"></div>
         this.y = y || 0;
         this.w = w || 1;
         this.h = h || 1;
-        this.fill = fill || '#AAAAAA';
+        this.full = full;
     }
 
     // Draws this shape to a given context
@@ -131,7 +148,12 @@ Time left: <div id="timeleft"></div>
         var img = new Image;
         //img.height = this.h;
         //img.width = this.w;
-        img.src = "Images/bus.png";
+        if (this.full) {
+            img.src = "Images/fullBus.png";
+        }
+        else {
+            img.src = "Images/bus.png";
+        }
         if (this.id != $('#playername').text()) {
             ctx.globalAlpha = 0.5;
         }
@@ -162,7 +184,7 @@ Time left: <div id="timeleft"></div>
     // Draws this person to a given context
     Person.prototype.draw = function (ctx) {
         if (this.visible) {
-            console.log("Drawing a person " + this.id);
+            //console.log("Drawing a person " + this.id);
             //ctx.fillStyle = this.fill;
             //ctx.fillRect(this.x, this.y, this.w, this.h);
             var img = new Image;
@@ -192,7 +214,8 @@ Time left: <div id="timeleft"></div>
         shapeModel = {
             left: 0,
             top: 0,
-            id: ""
+            id: "",
+            full: false
         }
 
     function CanvasState(canvas) {
@@ -280,24 +303,39 @@ Time left: <div id="timeleft"></div>
                 shapeModel.left = myState.selection.x;
                 shapeModel.top = myState.selection.y;
                 shapeModel.id = myState.selection.id;
-                console.log("Sending to server " + shapeModel.id);
+                shapeModel.full = myState.selection.full;
+
+                console.log(shapeModel.left + " " + shapeModel.top);
+                if (shapeModel.left < dropOffX && shapeModel.top > dropOffY) {
+                    $("#peopleOnBus").text(0);
+                    shapeModel.full = false;
+                    myState.selection.full = false;
+                }
 
                 var people = myState.people;
                 for (var i = 0; i < people.length; i++) {
                     var person = people[i]
                     if (person.visible && person.contains(myState.selection.x, myState.selection.y)) {
-                        person.visible = false;
-                        var personModel = {
-                            left: person.x,
-                            top: person.y,
-                            id: person.id,
-                            visible: person.visible
+                        var peopleOnBus = parseInt($("#peopleOnBus").text());
+                        if (peopleOnBus < busCapasity) {
+                            person.visible = false;
+                            $("#peopleOnBus").text(peopleOnBus + 1);
+                            if (peopleOnBus + 1 >= busCapasity) {
+                                shapeModel.full = true;
+                                myState.selection.full = true;
+                            }
+                            var personModel = {
+                                left: person.x,
+                                top: person.y,
+                                id: person.id,
+                                visible: person.visible
+                            }
+                            moveShapeHub.server.updatePerson(personModel);
                         }
-                        moveShapeHub.server.updatePerson(personModel);
                     }
                 }
                 moveShapeHub.server.updateModel(shapeModel);
-                myState.valid = false; // Something's dragging so we must redraw
+                myState.valid = false; // Something's dragging so we must redraw                
             }
         }, true);
         moveShapeHub.client.updateShape = function (model) {
@@ -325,9 +363,7 @@ Time left: <div id="timeleft"></div>
                 }
             }
             if (!foundShape) {
-                console.log("before " + myState.shapes.length);
-                myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
-                console.log("after" + myState.shapes.length);
+                myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, shapeModel.full));
             }
         };
         moveShapeHub.client.updatePerson = function (model) {
@@ -402,7 +438,7 @@ Time left: <div id="timeleft"></div>
             var ctx = this.ctx;
             var shapes = this.shapes;
             var people = this.people;
-            
+
 
             // ** Add stuff you want drawn in the background all the time here **
 
@@ -487,7 +523,7 @@ Time left: <div id="timeleft"></div>
     function createPlayersShape() {
         console.log("Creating shape");
         canvasState = new CanvasState(document.getElementById('canvas1'));
-        var newShape = new Shape($('#playername').text(), (Math.random() * 60) + 1, (Math.random() * 60) + 1, 40, 40, 'lightskyblue');
+        var newShape = new Shape($('#playername').text(), (Math.random() * 60) + 1, (Math.random() * 60) + 1, 40, 40, false);
         canvasState.addShape(newShape);
         newModel.left = newShape.x;
         newModel.top = newShape.y;

@@ -35,12 +35,40 @@ namespace MoveShapeDemo
 
         static Broadcaster()
         {
-            for (int i = 1; i < 10; i++)
-            {
-                People.Add(new PersonModel { Id = i.ToString(), Left = i * 100, Top = i * 100, Visible = true });
-            }
+            
+            makeMeSomePeople(375, 443, 5);
+            makeMeSomePeople(380, 578, 5);
+            makeMeSomePeople(502, 612, 6); //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 502, Top = 612, Visible = true });
+            makeMeSomePeople(920, 548, 5);
+            makeMeSomePeople(608, 476, 5);
+            makeMeSomePeople(705, 316, 5);
+            //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 510, Top = 635, Visible = true });
+            //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 520, Top = 624, Visible = true });
+            //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 495, Top = 595, Visible = true });
+            //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 482, Top = 587, Visible = true });
+            //People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = 480, Top = 605, Visible = true });
+
         }
 
+        private static void makeMeSomePeople(int seedLeft, int seedTop, int people)
+        {
+
+            People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft, Top = seedTop, Visible = true });
+            People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft - 8, Top = seedTop - 23, Visible = true });
+            if (people > 2)
+            {
+                People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft - 18, Top = seedTop - 12, Visible = true });
+                People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft + 7, Top = seedTop - 17, Visible = true });
+                People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft + 20, Top = seedTop - 25, Visible = true });
+            }
+            if (people > 5)
+            {
+                People.Add(new PersonModel { Id = Guid.NewGuid().ToString(), Left = seedLeft + 22, Top = seedTop + 7, Visible = true });
+
+            }
+
+        }
+        
         public Broadcaster()
         {
             started = DateTime.Now;
@@ -179,6 +207,8 @@ namespace MoveShapeDemo
         // We don't want the client to get the "LastUpdatedBy" property
         [JsonIgnore]
         public string LastUpdatedBy { get; set; }
+        [JsonProperty("full")]
+        public bool Full { get; set; }
     }
 
     public class PersonModel

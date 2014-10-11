@@ -253,6 +253,7 @@
     <Content Include="Global.asax" />
     <None Include="Scripts\jquery-1.7.1.intellisense.js" />
     <Content Include="Images\bus.png" />
+    <Content Include="Images\fullBus.png" />
     <Content Include="Images\map.png" />
     <Content Include="Images\person.png" />
     <Content Include="Scripts\jquery-1.7.1.js" />
