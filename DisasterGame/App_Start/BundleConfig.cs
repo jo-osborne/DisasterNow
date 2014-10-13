@@ -1,7 +1,7 @@
 ﻿using System.Web;
 using System.Web.Optimization;
 
-namespace DisasterGame
+namespace DisasterNow
 {
     public class BundleConfig
     {

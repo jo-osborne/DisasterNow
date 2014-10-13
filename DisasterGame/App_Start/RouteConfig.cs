@@ -6,7 +6,7 @@ using System.Web.Mvc;
 using System.Web.Routing;
 using System.Web.Http;
 
-namespace DisasterGame
+namespace DisasterNow
 {
     public class RouteConfig
     {
@@ -15,9 +15,9 @@ namespace DisasterGame
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
             routes.MapHttpRoute(
-                name: "getshapes",
-                routeTemplate: "getshapes",
-                defaults: new { controller = "ShapeModel", action = "Get" }
+                name: "getvehicles",
+                routeTemplate: "getvehicles",
+                defaults: new { controller = "VehicleModel", action = "Get" }
             );
 
             routes.MapHttpRoute(

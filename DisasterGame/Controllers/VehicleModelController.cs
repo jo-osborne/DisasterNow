@@ -8,11 +8,11 @@ using System.Web.Http;
 
 namespace DisasterNow.Controllers
 {
-    public class PeopleModelController : ApiController
+    public class VehicleModelController : ApiController
     {
-        public PersonModel[] Get()
+        public VehicleModel[] Get()
         {
-            return Broadcaster.People.ToArray();
+            return Broadcaster.Vehicles.ToArray();
         }
     }
 }

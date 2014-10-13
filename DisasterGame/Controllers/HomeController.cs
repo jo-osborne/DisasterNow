@@ -4,7 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 
-namespace DisasterGame.Controllers
+namespace DisasterNow.Controllers
 {
     public class HomeController : Controller
     {

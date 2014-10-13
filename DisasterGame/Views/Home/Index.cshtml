@@ -1,42 +1,35 @@
-﻿@{
-    ViewBag.Title = "Home Page";
-}
-<div style="position: absolute; top: 790px; left: 1400px; z-index:9;">
+﻿<div style="position: absolute; top: 790px; left: 1400px; z-index:9;">
     Time left: <span id="timeleft"></span>
     <br />
-    People on the bus: <span id="peopleOnBus">0</span><br />
+    People on bus: <span id="peopleOnBus">0</span><br />
     Name: <span id="playername"></span>
 </div>
-
 <div id="results" style="position: absolute; top: 40px; left: 400px;"; z-index:9;></div>
 <img src="/Images/bus.jpg" style="display: none" />
 <div>
     <img src="Images/logo.png" class="logo" />
-
     <img src="Images/sidebar.jpg" style="position: absolute; top: 0; left: 1352px" />
-
-
-
-    <canvas id="canvas1" height="900" width="1352" style="position: absolute; top: 80px; left: 0"></canvas>
+    <canvas id="gameCanvas" height="900" width="1352" style="position: absolute; top: 80px; left: 0"></canvas>
 </div>
 <script>
     var gameOver = false;
     var busCapasity = 3;
     var dropOffX = 105;
     var dropOffY = 775;
-    var moveShapeHub = $.connection.moveShapeHub,
+    var disasterNowHub = $.connection.disasterNowHub,
     // Send a maximum of 10 messages per second
     // (mouse movements trigger a lot of messages)
     messageFrequency = 10,
     // Determine how often to send messages in
     // time to abide by the messageFrequency
     updateRate = 1000 / messageFrequency,
-    shapeModel = {
+    vehicleModel = {
         left: 0,
         top: 0,
         id: "",
         full: false
     },
+    // JOJO - do we need newModel?
     newModel = {
         left: 0,
         top: 0,
@@ -44,31 +37,24 @@
         full: false
     },
     moved = false;
-
     $.connection.hub.start().done(function () {
         console.log("Hub started");
-        moveShapeHub.server.updateModel(newModel);
-
+        disasterNowHub.server.updateModel(newModel);
         $.ajax({
-            url: "/getshapes",
-            //data: data,
+            url: "/getvehicles",
             success: function (data) {
-                var serverShapes = data;
-                var foundShape = false;
-                var localShapes = canvasState.shapes;
-                console.log("serverShapes=" + serverShapes);
-                console.log("serverShapes.length=" + serverShapes.length);
-                console.log("localShapes.length=" + localShapes.length);
-                for (var i = 0; i < serverShapes.length; i++) {
-                    for (var j = 0; j < localShapes.length; j++) {
-                        if (localShapes[j].id == serverShapes[i].id) {
-                            foundShape = true;
+                var serverVehicles = data;
+                var foundVehicle = false;
+                var localVehicles = canvasState.vehicles;
+                for (var i = 0; i < serverVehicles.length; i++) {
+                    for (var j = 0; j < localVehicles.length; j++) {
+                        if (localVehicles[j].id == serverVehicles[i].id) {
+                            foundVehicle = true;
                             break;
                         }
                     }
-                    console.log(serverShapes[i].id + " " + foundShape);
-                    if (!foundShape) {
-                        canvasState.addShape(new Shape(serverShapes[i].id, serverShapes[i].left, serverShapes[i].top, 40, 40, 'lightskyblue'));
+                    if (!foundVehicle) {
+                        canvasState.addVehicle(new Vehicle(serverVehicles[i].id, serverVehicles[i].left, serverVehicles[i].top, 40, 40, 'lightskyblue'));
                     }
                 }
                 canvasState.valid = false;
@@ -80,31 +66,18 @@
             url: "/getpeople",
             success: function (data) {
                 var serverPeople = data;
-                var foundShape = false;
                 var localPeople = canvasState.people;
-                console.log("serverPeople=" + serverPeople);
-                console.log("serverPeople.length=" + serverPeople.length);
-                console.log("localPeople.length=" + localPeople.length);
                 for (var i = 0; i < serverPeople.length; i++) {
-                    //for (var j = 0; j < localPeople.length; j++) {
-                    //    if (localPeople[j].id == serverPeople[i].id) {
-                    //        foundShape = true;
-                    //        break;
-                    //    }
-                    //}
-                    //console.log(serverPeople[i].id + " " + foundShape);
-                    //if (!foundShape) {
                     canvasState.addPerson(new Person(serverPeople[i].id, serverPeople[i].left, serverPeople[i].top, 20, 20, serverPeople[i].visible));
-                    //}
                 }
                 canvasState.valid = false;
                 canvasState.draw();
             },
         });
 
-        $shape.draggable({
+        $vehicle.draggable({
             drag: function () {
-                shapeModel = $shape.offset();
+                vehicleModel = $vehicle.offset();
                 moved = true;
             }
         });
@@ -114,23 +87,12 @@
     function updateServerModel() {
         // Only update server if we have a new movement
         if (moved) {
-            moveShapeHub.server.updateModel(shapeModel);
+            disasterNowHub.server.updateModel(vehicleModel);
             moved = false;
         }
     }
 
-    // By Simon Sarris
-    // www.simonsarris.com
-    // sarris@acm.org
-    //
-    // Last update December 2011
-    //
-    // Free to use and distribute at will
-    // So long as you are nice to people, etc
-
-    // Constructor for Shape objects to hold data for all drawn objects.
-    // For now they will just be defined as rectangles.
-    function Shape(id, x, y, w, h, full) {
+    function Vehicle(id, x, y, w, h, full) {
         // This is a very simple and unsafe constructor. All we're doing is checking if the values exist.
         // "x || 0" just means "if there is a value for x, use that. Otherwise use 0."
         // But we aren't checking anything else! We could put "Lalala" for the value of x 
@@ -142,8 +104,8 @@
         this.full = full;
     }
 
-    // Draws this shape to a given context
-    Shape.prototype.draw = function (ctx) {
+    // Draws this vehicle to a given context
+    Vehicle.prototype.draw = function (ctx) {
         //ctx.fillStyle = this.fill;
         //ctx.fillRect(this.x, this.y, this.w, this.h);
         var img = new Image;
@@ -162,10 +124,10 @@
         ctx.globalAlpha = 1;
     }
 
-    // Determine if a point is inside the shape's bounds
-    Shape.prototype.contains = function (mx, my) {
+    // Determine if a point is inside the vehicle's bounds
+    Vehicle.prototype.contains = function (mx, my) {
         // All we have to do is make sure the Mouse X,Y fall in the area between
-        // the shape's X and (X + Width) and its Y and (Y + Height)
+        // the vehicle's X and (X + Width) and its Y and (Y + Height)
         return (this.x <= mx) && (this.x + this.w >= mx) &&
                 (this.y <= my) && (this.y + this.h >= my);
     }
@@ -204,15 +166,15 @@
                 (this.y <= my) && (this.y + this.h >= my);
     }
 
-    var moveShapeHub = $.connection.moveShapeHub,
-        $shape = $("#shape"),
+    var disasterNowHub = $.connection.disasterNowHub,
+        $vehicle = $("#vehicle"),
         // Send a maximum of 10 messages per second
         // (mouse movements trigger a lot of messages)
         messageFrequency = 10,
         // Determine how often to send messages in
         // time to abide by the messageFrequency
         updateRate = 1000 / messageFrequency,
-        shapeModel = {
+        vehicleModel = {
             left: 0,
             top: 0,
             id: "",
@@ -246,7 +208,7 @@
         // **** Keep track of state! ****
 
         this.valid = false; // when set to false, the canvas will redraw everything
-        this.shapes = [];  // the collection of things to be drawn
+        this.vehicles = [];  // the collection of things to be drawn
         this.people = [];  // the collection of things to be drawn
         this.dragging = false; // Keep track of when we are dragging
         // the current selected object. In the future we could turn this into an array for multiple selection
@@ -270,12 +232,12 @@
             var mouse = myState.getMouse(e);
             var mx = mouse.x;
             var my = mouse.y;
-            var shapes = myState.shapes;
-            var l = shapes.length;
+            var vehicles = myState.vehicles;
+            var l = vehicles.length;
             for (var i = l - 1; i >= 0; i--) {
-                if (shapes[i].contains(mx, my)) {
-                    if (shapes[i].id == $('#playername').text()) {
-                        var mySel = shapes[i];
+                if (vehicles[i].contains(mx, my)) {
+                    if (vehicles[i].id == $('#playername').text()) {
+                        var mySel = vehicles[i];
                         // Keep track of where in the object we clicked
                         // so we can move it smoothly (see mousemove)
                         myState.dragoffx = mx - mySel.x;
@@ -301,15 +263,15 @@
                 // from where we clicked. Thats why we saved the offset and use it here
                 myState.selection.x = mouse.x - myState.dragoffx;
                 myState.selection.y = mouse.y - myState.dragoffy;
-                shapeModel.left = myState.selection.x;
-                shapeModel.top = myState.selection.y;
-                shapeModel.id = myState.selection.id;
-                shapeModel.full = myState.selection.full;
+                vehicleModel.left = myState.selection.x;
+                vehicleModel.top = myState.selection.y;
+                vehicleModel.id = myState.selection.id;
+                vehicleModel.full = myState.selection.full;
 
-                console.log(shapeModel.left + " " + shapeModel.top);
-                if (shapeModel.left < dropOffX && shapeModel.top > dropOffY) {
+                console.log(vehicleModel.left + " " + vehicleModel.top);
+                if (vehicleModel.left < dropOffX && vehicleModel.top > dropOffY) {
                     $("#peopleOnBus").text(0);
-                    shapeModel.full = false;
+                    vehicleModel.full = false;
                     myState.selection.full = false;
                 }
 
@@ -322,7 +284,7 @@
                             person.visible = false;
                             $("#peopleOnBus").text(peopleOnBus + 1);
                             if (peopleOnBus + 1 >= busCapasity) {
-                                shapeModel.full = true;
+                                vehicleModel.full = true;
                                 myState.selection.full = true;
                             }
                             var personModel = {
@@ -331,44 +293,44 @@
                                 id: person.id,
                                 visible: person.visible
                             }
-                            moveShapeHub.server.updatePerson(personModel);
+                            disasterNowHub.server.updatePerson(personModel);
                         }
                     }
                 }
-                moveShapeHub.server.updateModel(shapeModel);
+                disasterNowHub.server.updateModel(vehicleModel);
                 myState.valid = false; // Something's dragging so we must redraw                
             }
         }, true);
-        moveShapeHub.client.updateShape = function (model) {
-            shapeModel = model;
-            // Gradually move the shape towards the new location (interpolate)
+        disasterNowHub.client.updateVehicle = function (model) {
+            vehicleModel = model;
+            // Gradually move the vehicle towards the new location (interpolate)
             // The updateRate is used as the duration because by the time
             // we get to the next location we want to be at the "last" location
             // We also clear the animation queue so that we start a new
             // animation and don't lag behind.
-            //$shape.animate(shapeModel, { duration: updateRate, queue: false });  
-            console.log("Received update for " + shapeModel.id);
-            var foundShape = false;
-            var shapes = myState.shapes;
-            var l = shapes.length;
+            //$vehicle.animate(vehicleModel, { duration: updateRate, queue: false });  
+            console.log("Received update for " + vehicleModel.id);
+            var foundVehicle = false;
+            var vehicles = myState.vehicles;
+            var l = vehicles.length;
             console.log("l=" + l);
             for (var i = 0; i < l; i++) {
-                console.log("Checking if this is the right shape: " + shapes[i].id);
-                if (shapes[i].id == shapeModel.id) {
-                    var mySel = shapes[i];
-                    mySel.x = shapeModel.left;
-                    mySel.y = shapeModel.top;
+                console.log("Checking if this is the right vehicle: " + vehicles[i].id);
+                if (vehicles[i].id == vehicleModel.id) {
+                    var mySel = vehicles[i];
+                    mySel.x = vehicleModel.left;
+                    mySel.y = vehicleModel.top;
                     myState.valid = false;
-                    foundShape = true;
+                    foundVehicle = true;
                     break;
                 }
             }
-            if (!foundShape) {
-                myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, shapeModel.full));
+            if (!foundVehicle) {
+                myState.addVehicle(new Vehicle(vehicleModel.id, vehicleModel.left, vehicleModel.top, 40, 40, vehicleModel.full));
             }
         };
-        moveShapeHub.client.updatePerson = function (model) {
-            //var foundShape = false;
+        disasterNowHub.client.updatePerson = function (model) {
+            //var foundVehicle = false;
             var people = myState.people;
             var l = people.length;
             for (var i = 0; i < l; i++) {
@@ -378,20 +340,20 @@
                     //mySel.y = model.top;
                     mySel.visible = model.visible;
                     myState.valid = false;
-                    //foundShape = true;
+                    //foundVehicle = true;
                     break;
                 }
             }
-            //if (!foundShape) {
-            //    console.log("before " + myState.shapes.length);
-            //    myState.addShape(new Shape(shapeModel.id, shapeModel.left, shapeModel.top, 40, 40, 'lightskyblue'));
-            //    console.log("after" + myState.shapes.length);
+            //if (!foundVehicle) {
+            //    console.log("before " + myState.vehicles.length);
+            //    myState.addVehicle(new Vehicle(vehicleModel.id, vehicleModel.left, vehicleModel.top, 40, 40, 'lightskyblue'));
+            //    console.log("after" + myState.vehicles.length);
             //}
         };
-        moveShapeHub.client.updateTimer = function (model) {
+        disasterNowHub.client.updateTimer = function (model) {
             $("#timeleft").text(model.timeleft);
         };
-        moveShapeHub.client.gameOver = function (model) {
+        disasterNowHub.client.gameOver = function (model) {
             gameOver = true;
             canvasState.valid = false;
             canvasState.draw();
@@ -401,10 +363,10 @@
         canvas.addEventListener('mouseup', function (e) {
             myState.dragging = false;
         }, true);
-        // double click for making new shapes
+        // double click for making new vehicles
         //canvas.addEventListener('dblclick', function (e) {
         //    var mouse = myState.getMouse(e);
-        //    myState.addShape(new Shape(mouse.x - 10, mouse.y - 10, 20, 20, 'rgba(0,255,0,.6)'));
+        //    myState.addVehicle(new Vehicle(mouse.x - 10, mouse.y - 10, 20, 20, 'rgba(0,255,0,.6)'));
         //}, true);
 
         // **** Options! ****
@@ -415,8 +377,8 @@
         setInterval(function () { myState.draw(); }, myState.interval);
     }
 
-    CanvasState.prototype.addShape = function (shape) {
-        this.shapes.push(shape);
+    CanvasState.prototype.addVehicle = function (vehicle) {
+        this.vehicles.push(vehicle);
         this.valid = false;
     }
 
@@ -440,27 +402,27 @@
             this.ctx.drawImage(img, 0, 0, 1352, 900);
 
             var ctx = this.ctx;
-            var shapes = this.shapes;
+            var vehicles = this.vehicles;
             var people = this.people;
 
 
             // ** Add stuff you want drawn in the background all the time here **
 
-            var myShape;
-            // draw all shapes
-            var l = shapes.length;
+            var myVehicle;
+            // draw all vehicles
+            var l = vehicles.length;
             for (var i = 0; i < l; i++) {
-                var shape = shapes[i];
+                var vehicle = vehicles[i];
                 // We can skip the drawing of elements that have moved off the screen:
-                if (shape.x > this.width || shape.y > this.height ||
-                    shape.x + shape.w < 0 || shape.y + shape.h < 0) continue;
-                shapes[i].draw(ctx);
-                if (shapes[i].id == $("#playername").text()) {
-                    myShape = shapes[i];
+                if (vehicle.x > this.width || vehicle.y > this.height ||
+                    vehicle.x + vehicle.w < 0 || vehicle.y + vehicle.h < 0) continue;
+                vehicles[i].draw(ctx);
+                if (vehicles[i].id == $("#playername").text()) {
+                    myVehicle = vehicles[i];
                 }
             }
 
-            myShape.draw(ctx);
+            myVehicle.draw(ctx);
 
             // draw all people
             var pl = people.length;
@@ -474,7 +436,7 @@
             }
 
             // draw selection
-            // right now this is just a stroke along the edge of the selected Shape
+            // right now this is just a stroke along the edge of the selected Vehicle
             if (this.selection != null) {
                 ctx.strokeStyle = this.selectionColor;
                 ctx.lineWidth = this.selectionWidth;
@@ -523,26 +485,26 @@
     // You could uncomment this init() reference and place the script reference inside the body tag
     //init();
 
-    //var canvasState = new CanvasState(document.getElementById('canvas1'));
+    //var canvasState = new CanvasState(document.getElementById('gameCanvas'));
 
     function getPlayersName() {
         $('#playername').text(prompt('Enter your name:', ''));
     }
 
-    function createPlayersShape() {
-        console.log("Creating shape");
-        canvasState = new CanvasState(document.getElementById('canvas1'));
-        var newShape = new Shape($('#playername').text(), (Math.random() * 60) + 1, (Math.random() * 60) + 1, 40, 40, false);
-        canvasState.addShape(newShape);
-        newModel.left = newShape.x;
-        newModel.top = newShape.y;
-        newModel.id = newShape.id;
+    function createPlayersVehicle() {
+        console.log("Creating vehicle");
+        canvasState = new CanvasState(document.getElementById('gameCanvas'));
+        var newVehicle = new Vehicle($('#playername').text(), (Math.random() * 60) + 1, (Math.random() * 60) + 1, 40, 40, false);
+        canvasState.addVehicle(newVehicle);
+        newModel.left = newVehicle.x;
+        newModel.top = newVehicle.y;
+        newModel.id = newVehicle.id;
 
-        console.log("Sending new shape to server " + newShape.id);
+        console.log("Sending new vehicle to server " + newVehicle.id);
     }
 
     getPlayersName();
-    createPlayersShape();
+    createPlayersVehicle();
 
     // Now go make something amazing!
 </script>

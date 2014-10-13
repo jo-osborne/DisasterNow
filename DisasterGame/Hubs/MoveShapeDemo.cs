@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace MoveShapeDemo
+namespace DisasterNow
 {
     public class Broadcaster
     {
@@ -18,15 +18,15 @@ namespace MoveShapeDemo
         private Timer _broadcastLoop;
         private Timer _personBroadcastLoop;
         private Timer _timeBroadcastLoop;
-        private ShapeModel _model;
+        private VehicleModel _model;
         private bool _modelUpdated;
 
         private PersonModel _personModel;
         private bool _personModelUpdated;
 
-        private static object shapeLocker = new object();
+        private static object VehiclesLocker = new object();
         private static object peopleLocker = new object();
-        public static List<ShapeModel> Shapes = new List<ShapeModel>();
+        public static List<VehicleModel> Vehicles = new List<VehicleModel>();
         public static List<PersonModel> People = new List<PersonModel>();
 
         private const int GameLength = 120;
@@ -74,12 +74,12 @@ namespace MoveShapeDemo
             started = DateTime.Now;
             // Save our hub context so we can easily use it 
             // to send to its connected clients
-            _hubContext = GlobalHost.ConnectionManager.GetHubContext<MoveShapeHub>();
-            _model = new ShapeModel();
+            _hubContext = GlobalHost.ConnectionManager.GetHubContext<DisasterNowHub>();
+            _model = new VehicleModel();
             _modelUpdated = false;
             // Start the broadcast loop
             _broadcastLoop = new Timer(
-                BroadcastShape,
+                BroadcastVehicle,
                 null,
                 BroadcastInterval,
                 BroadcastInterval);
@@ -94,14 +94,14 @@ namespace MoveShapeDemo
                 BroadcastInterval,
                 BroadcastInterval);
         }
-        public void BroadcastShape(object state)
+        public void BroadcastVehicle(object state)
         {
             // No need to send anything if our model hasn't changed
             if (_modelUpdated)
             {
                 // This is how we can access the Clients property 
                 // in a static hub method or outside of the hub entirely
-                _hubContext.Clients.AllExcept(_model.LastUpdatedBy).updateShape(_model);
+                _hubContext.Clients.AllExcept(_model.LastUpdatedBy).updateVehicle(_model);
                 _modelUpdated = false;
             }
         }
@@ -132,15 +132,15 @@ namespace MoveShapeDemo
                 _personModelUpdated = false;
             }
         }
-        public void UpdateShape(ShapeModel clientModel)
+        public void UpdateVehicle(VehicleModel clientModel)
         {
             _model = clientModel;
             _modelUpdated = true;
-            lock (shapeLocker)
+            lock (VehiclesLocker)
             {
-                if (!Shapes.Any(x => x.Id == clientModel.Id))
+                if (!Vehicles.Any(x => x.Id == clientModel.Id))
                 {
-                    Shapes.Add(clientModel);
+                    Vehicles.Add(clientModel);
                 }
             }
         }
@@ -168,33 +168,32 @@ namespace MoveShapeDemo
         }
     }
 
-    public class MoveShapeHub : Hub
+    public class DisasterNowHub : Hub
     {
         // Is set via the constructor on each creation
         private Broadcaster _broadcaster;
-        public MoveShapeHub()
+        public DisasterNowHub()
             : this(Broadcaster.Instance)
         {
         }
-        public MoveShapeHub(Broadcaster broadcaster)
+        public DisasterNowHub(Broadcaster broadcaster)
         {
             _broadcaster = broadcaster;
         }
-        public void UpdateModel(ShapeModel clientModel)
+        public void UpdateModel(VehicleModel clientModel)
         {
             clientModel.LastUpdatedBy = Context.ConnectionId;
-            // Update the shape model within our broadcaster
-            _broadcaster.UpdateShape(clientModel);
+            // Update the vehicle model within our broadcaster
+            _broadcaster.UpdateVehicle(clientModel);
         }
 
         public void UpdatePerson(PersonModel clientModel)
         {
             clientModel.LastUpdatedBy = Context.ConnectionId;
-            // Update the shape model within our broadcaster
             _broadcaster.UpdatePerson(clientModel);
         }
     }
-    public class ShapeModel
+    public class VehicleModel
     {
         // We declare Left and Top as lowercase with 
         // JsonProperty to sync the client and server models

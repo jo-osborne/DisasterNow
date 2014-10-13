@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNet.SignalR;
 
-namespace DisasterGame.Hubs
+namespace DisasterNow.Hubs
 {
     public class DisasterHub : Hub
     {

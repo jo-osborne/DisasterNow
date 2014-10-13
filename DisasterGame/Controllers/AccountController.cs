@@ -8,10 +8,10 @@ using System.Web.Security;
 using DotNetOpenAuth.AspNet;
 using Microsoft.Web.WebPages.OAuth;
 using WebMatrix.WebData;
-using DisasterGame.Filters;
-using DisasterGame.Models;
+using DisasterNow.Filters;
+using DisasterNow.Models;
 
-namespace DisasterGame.Controllers
+namespace DisasterNow.Controllers
 {
     [Authorize]
     [InitializeSimpleMembership]
